@@ -67,3 +67,8 @@ Sur Ubuntu Server 22.04, la configuration réseau s'effectue via **Netplan**. Po
  2. Connexion SSH
 ```bash
 ssh ibrahim@192.168.1.135
+
+
+
+* Mon  YouTube avec la vidéo qui guide pas à  pas:https://www.youtube.com/playlist?list=PL59vNdUyu2fIf5OeoUcDf4bqLpzRBEwFs
+* Mon LinkedIn pour se connecter à moi :https://www.linkedin.com/in/ibrahim-djidji-ba2ba3371/
