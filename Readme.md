@@ -66,7 +66,98 @@ Sur Ubuntu Server 22.04, la configuration réseau s'effectue via **Netplan**. Po
    ip a
  2. Connexion SSH
 ```bash
-ssh ibrahim@192.168.1.135
+ssh ibrahim@[mon @ip]
+ 
+
+# Sécurisation SSH HomeLab - 03/06/2026
+
+Procédure complète suite à détection d’intrusion. Fait hier 03/06/2026.
+
+## 1. Contexte
+Serveur compromis : clé SSH de l’attaquant trouvée dans `~/.ssh/`. 
+Objectif : virer l’accès attaquant + durcir SSH + firewall.
+
+## 2. Étapes réalisées sur le serveur Ubuntu
+
+### A. Suppression des clés de l’attaquant
+```bash
+rm ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.pub
+
+![Capture suppression clés attaquant](captures/01_suppression_cles_attaquant.png)
+
+B. Génération nouvelle clé depuis PC Windows
+Sur PowerShell Windows, pas sur le serveur :
+
+ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\id_ed25519_homelab -C "ibrahim@homelab"
+
+![Capture génération clé Windows](captures/02_ssh_keygen_windows.png)
+
+Copie de la clé publique vers le serveur :
+
+type $env:USERPROFILE\.ssh\id_ed25519_homelab.pub | ssh -p 2222 ibrahim@192.168.1.135 "cat >> ~/.ssh/authorized_keys"
+
+C. Correction permissions - CRITIQUE POUR SSH
+
+sudo chown ibrahim:ibrahim ~/.ssh
+sudo chmod 700 ~/.ssh
+sudo chown ibrahim:ibrahim ~/.ssh/authorized_keys  
+sudo chmod 600 ~/.ssh/authorized_keys
+
+![Capture correction permissions](captures/03_chmod_chown.png)
+
+Explications :
+- `700` = dossier .ssh : seul ibrahim peut lire/écrire/entrer
+- `600` = authorized_keys : seul ibrahim peut lire/écrire
+
+D. Vérification
+
+ls -l ~/.ssh/authorized_keys
+
+Résultat attendu : `-rw------- 1 ibrahim ibrahim ... authorized_keys`
+![Capture vérification ls -l](captures/04_verification_permissions.png)
+
+E. Test connexion sans mot de passe
+Depuis Windows PowerShell :
+
+ssh -p 2222 ibrahim@[mon @ip]
+
+Si ça connecte direct = clé OK.
+![Capture test SSH sans mot de passe](captures/05_test_ssh_ok.png)
+
+3. Durcissement déjà appliqué hier
+
+Outil	Statut	Commandes/Config
+**Fail2Ban**	✅ Installé + Actif	`sudo apt install fail2ban`
+Ban après 5 échecs sur port 2222
+**UFW Firewall**	✅ Actif	`sudo ufw enable`
+Seul port 2222 ouvert en SSH
+**Port SSH**	✅ Changé	Port 22 → 2222 dans `/etc/ssh/sshd_config`
+
+4. Difficultés rencontrées hier
+
+Problème	Cause	Solution appliquée
+`Permission denied` sur `authorized_keys`	Fichier appartenait à `root`	`sudo chown ibrahim:ibrahim ~/.ssh/authorized_keys`
+Faute de frappe `authorised`	Anglais UK vs US	Corriger en `authorized`
+`ls -l` bloqué	Dossier `.ssh` aussi root	`sudo chown ibrahim:ibrahim ~/.ssh`
+Connexion demande mot de passe	Permissions mauvaises	Appliquer 700/600 strict
+
+*Leçon clé :* SSH est parano. 1 mauvaise permission = il ignore la clé sans prévenir.
+
+5. Prochaines étapes
+1. Désactiver `PasswordAuthentication no` dans sshd_config une fois clé 100% stable
+2. Redémarrer SSH : `sudo systemctl restart sshd`
+3. Audit logs Fail2Ban : `sudo fail2ban-client status sshd`
+
+
+---
+Fait par : Ibrahim  
+Date : 03/06/2026  
+Serveur : homelabpc @ [mon @ip]  
+Niveau : HomeLab sécurisé de base ✅
+
+
+Là c’est complet. Fail2Ban + UFW sont dans section "Durcissement déjà appliqué" avec ✅
+
 
 
 
